@@ -4,10 +4,13 @@ import java.time.LocalDateTime;
 
 import org.hibernate.annotations.UpdateTimestamp;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -15,11 +18,11 @@ import jakarta.validation.constraints.Size;
 @Entity
 @Table(name = "tb_postagens") /*CREATE TABLE tb_postagens*/
 public class Postagem {
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Id // O atributo é a chave primaria
+	@GeneratedValue(strategy = GenerationType.IDENTITY) //auto increment
 	private Long id;
 	
-	@NotBlank(message = "O Atributo título é obrigatório!")
+	@NotBlank(message = "O Atributo título é obrigatório!")// noblank é exclusivo para string
 	@Size(min = 5, max = 100, message = "O atributo título deve ter no mínimo 05 e no máximo 100 caracteres")
 	private String titulo;
 	
@@ -27,9 +30,15 @@ public class Postagem {
 	@Size(min = 10, max = 1000, message = "O atributo texto deve ter no mínimo 10 e no máximo 1000 caracteres")
 	private String texto;
 	
-	@UpdateTimestamp
+	@UpdateTimestamp //localdatetime mais atualizada no java e updatetimestamp atualiza as informações
 	private LocalDateTime data;
-
+	
+	// *Relcionamento*
+	
+	@ManyToOne
+	@JsonIgnoreProperties("postagem")
+	private Tema tema;
+	
 	public Long getId() {
 		return id;
 	}
@@ -62,5 +71,13 @@ public class Postagem {
 		this.data = data;
 	}
 	
+	// *Criar os metodos get e set do objeto tema*
+	public Tema getTema() {
+		return tema;
+	}
+
+	public void setTema(Tema tema) {
+		this.tema = tema;
+	}
 	
 }

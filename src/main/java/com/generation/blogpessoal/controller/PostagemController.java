@@ -1,6 +1,7 @@
 package com.generation.blogpessoal.controller;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -15,20 +16,26 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.generation.blogpessoal.model.Postagem;
 import com.generation.blogpessoal.repository.PostagemRepository;
+import com.generation.blogpessoal.repository.TemaRepository;
 
 import jakarta.validation.Valid;
 
-@RestController // controaldor Res q vai responder toda e qualquer definição de 
-@RequestMapping("/postagens") //postagens 
-@CrossOrigin(origins = "*", allowedHeaders = "*") // qualquer origem, habilitar requissições vindas de outras origens, faz a diferença quando mandado na nuvem
+@RestController // controaldor Res q vai responder toda e qualquer definição de
+@RequestMapping("/postagens") // postagens
+@CrossOrigin(origins = "*", allowedHeaders = "*") // qualquer origem, habilitar requissições vindas de outras origens,
+													// faz a diferença quando mandado na nuvem
 public class PostagemController {
 
-	@Autowired //caracteriza que estamos fzd uma injençaõ de dependencia  
+	@Autowired // caracteriza que estamos fzd uma injençaõ de dependencia
 	private PostagemRepository postagemRepository;
 
+	@Autowired
+	private TemaRepository temaRepository;
+	
 	@GetMapping // metodo de consulta
 	public ResponseEntity<List<Postagem>> getAll() {
 		return ResponseEntity.ok(postagemRepository.findAll());
@@ -37,46 +44,56 @@ public class PostagemController {
 	}
 
 	@GetMapping("/{id}") /* entre chaves significa que é uma variavel */
-	public ResponseEntity<Postagem> getById(@PathVariable Long id){
-		
-		return postagemRepository.findById(id)
-				.map(resposta -> ResponseEntity.ok(resposta))
+	public ResponseEntity<Postagem> getById(@PathVariable Long id) {
+		return postagemRepository.findById(id).map(resposta -> ResponseEntity.ok(resposta))
 				.orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
 
 		// SELECT * FROM tb_postagens WHERE id = ?;
 	}
 
 	@GetMapping("/titulo/{titulo}")
-	public ResponseEntity<List<Postagem>> getByTitulo(@PathVariable String titulo){
-		
+	public ResponseEntity<List<Postagem>> getByTitulo(@PathVariable String titulo) {
 		return ResponseEntity.ok(postagemRepository.findAllByTituloContainingIgnoreCase(titulo));
 
 		// SELECT * FROM tb_postagens WHERE titulo LIKE "%titulo%";
 	}
-	
+
 	@PostMapping
-	public ResponseEntity<Postagem> post(@Valid @RequestBody Postagem postagem){
+	public ResponseEntity<Postagem> post(@Valid @RequestBody Postagem postagem) {
 		return ResponseEntity.status(HttpStatus.CREATED).body(postagemRepository.save(postagem));
-		
-		/* INSERT INTO tb_postagens (data, titulo, texto)
-		 VALUES (?, ?, ?)*/
+
+		/*
+		 * INSERT INTO tb_postagens (data, titulo, texto) VALUES (?, ?, ?)
+		 */
 	}
-	
+
 	@PutMapping
-	public ResponseEntity<Postagem> put(@Valid @RequestBody Postagem postagem){
-		return ResponseEntity.status(HttpStatus.OK).body(postagemRepository.save(postagem));
-		
-		/* UPDATE tb_postagens SET titulo = ?, texto = ?, data = ?
-		 * WHERE id = id*/ 
+	public ResponseEntity<Postagem> put(@Valid @RequestBody Postagem postagem) {
+
+		return postagemRepository.findById(postagem.getId())
+				.map(resposta ->
+						temaRepository.findById(postagem.getTema().getId())
+							.map(resposta2 -> ResponseEntity.status(HttpStatus.OK).body(postagemRepository.save(postagem)))
+							.orElse(ResponseEntity.status(HttpStatus.BAD_REQUEST).build())
+							)
+				.orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+		/*
+		 * UPDATE tb_postagens SET titulo = ?, texto = ?, data = ? WHERE id = id
+		 */
 	}
-	
 
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@DeleteMapping("/{id}")
 	public void delete(@PathVariable Long id) {
+
+		Optional<Postagem> postagem = postagemRepository.findById(id);
+
+		if (postagem.isEmpty()) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+	}
+	else {
 		postagemRepository.deleteById(id);
-		
-		/* DELETE FROM tb_postagens WHERE id = id*/
+
+		}/* DELETE FROM tb_postagens WHERE id = id */
 	}
 }
-
