@@ -60,8 +60,10 @@ public class PostagemController {
 
 	@PostMapping
 	public ResponseEntity<Postagem> post(@Valid @RequestBody Postagem postagem) {
-		return ResponseEntity.status(HttpStatus.CREATED).body(postagemRepository.save(postagem));
+		if (temaRepository.existsById(postagem.getTema().getId()))
+			return ResponseEntity.status(HttpStatus.CREATED).body(postagemRepository.save(postagem));
 
+		throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tema não existe!", null);
 		/*
 		 * INSERT INTO tb_postagens (data, titulo, texto) VALUES (?, ?, ?)
 		 */
@@ -69,14 +71,16 @@ public class PostagemController {
 
 	@PutMapping
 	public ResponseEntity<Postagem> put(@Valid @RequestBody Postagem postagem) {
+		
+		if (postagemRepository.existsById(postagem.getId())) {
+			
+			if(temaRepository.existsById(postagem.getTema().getId()))
+				return ResponseEntity.status(HttpStatus.OK).body(postagemRepository.save(postagem));
+			
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tema não existe!", null);
+		}
 
-		return postagemRepository.findById(postagem.getId())
-				.map(resposta ->
-						temaRepository.findById(postagem.getTema().getId())
-							.map(resposta2 -> ResponseEntity.status(HttpStatus.OK).body(postagemRepository.save(postagem)))
-							.orElse(ResponseEntity.status(HttpStatus.BAD_REQUEST).build())
-							)
-				.orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
 		/*
 		 * UPDATE tb_postagens SET titulo = ?, texto = ?, data = ? WHERE id = id
 		 */
@@ -88,12 +92,11 @@ public class PostagemController {
 
 		Optional<Postagem> postagem = postagemRepository.findById(id);
 
-		if (postagem.isEmpty()) {
+		if (postagem.isEmpty()) 
 			throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-	}
-	else {
+	
 		postagemRepository.deleteById(id);
 
-		}/* DELETE FROM tb_postagens WHERE id = id */
+		/* DELETE FROM tb_postagens WHERE id = id */
 	}
 }
